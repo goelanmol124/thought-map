@@ -1,0 +1,14 @@
+import * as Y from 'yjs';
+import { IndexeddbPersistence } from 'y-indexeddb';
+// FIX: Added 'type' keyword here
+import type { ThoughtMap } from '../types';
+
+export const yDoc = new Y.Doc();
+export const yMaps = yDoc.getMap<ThoughtMap>('thoughtMaps');
+export const yConfig = yDoc.getMap<any>('config');
+
+export const localProvider = new IndexeddbPersistence('thought-map-data', yDoc);
+
+localProvider.on('synced', () => {
+    console.log('✅ Y.js successfully connected to local IndexedDB');
+});

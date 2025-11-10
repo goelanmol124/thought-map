@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thought Map</title>
+    
+    <!-- 1. GOOGLE ANALYTICS -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W3J3BTNX62"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-W3J3BTNX62');
+    </script>
+
+    <!-- 2. BLOCKING THEME SCRIPT (Prevents flash of light) -->
+    <!-- This must run before the body renders -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('themePreference');
+          // If saved is null, default to true (dark mode) to match your app default
+          const isDark = saved !== null ? JSON.parse(saved) : true;
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {
+          // Fallback to dark if something goes wrong
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-stone-50 dark:bg-slate-900 transition-colors duration-150">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
