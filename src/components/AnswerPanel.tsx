@@ -22,7 +22,7 @@ export const AnswerPanel = () => {
 
     // Sync local state when the selected node changes
     useEffect(() => {
-        if(node) {
+        if (node) {
             answerRef.current?.focus();
             setCurrentAnswer(node.answer || '');
             setCurrentNewQuestion('');
@@ -45,7 +45,7 @@ export const AnswerPanel = () => {
 
         const finalStaged = currentNewQuestion.trim() ? [...stagedNewQuestions, currentNewQuestion.trim()] : stagedNewQuestions;
         const updatedNodes = allNodes.map(n => n.id === currentQuestionId ? { ...n, isAnswered: true, answer: currentAnswer } : n);
-        
+
         const nextId = allNodes.length > 0 ? Math.max(...allNodes.map(n => n.id)) + 1 : 1;
         const newNodes = finalStaged.map((q, i) => ({
             id: nextId + i,
@@ -58,7 +58,7 @@ export const AnswerPanel = () => {
         const newNodesList = [...updatedNodes, ...newNodes];
 
         // Calculate next node to focus
-        const currentInbox = newNodesList.filter(n => !n.isAnswered);
+        const currentInbox = newNodesList.filter(n => !n.isAnswered).sort((a, b) => a.id - b.id);
         // Try to find the first newly added question, otherwise default to first in inbox
         const nextNode = currentInbox.find(n => n.id >= nextId) || currentInbox[0];
 
@@ -77,15 +77,15 @@ export const AnswerPanel = () => {
 
         const descendants = getDescendants(nodeId);
         const confirmMsg = `Delete "${nodeToDelete.question}"?${descendants.length > 0 ? ` WARNING: Deletes ${descendants.length} sub-thought(s).` : ''}`;
-        
+
         if (!window.confirm(confirmMsg)) return;
 
         const idsToDelete = new Set([nodeId, ...descendants.map(n => n.id)]);
         const newNodesList = allNodes.filter(n => !idsToDelete.has(n.id));
-        
+
         // If we deleted the active node, jump to its parent
         const nextActiveId = (nodeId === currentQuestionId) ? nodeToDelete.parentId : currentQuestionId;
-        
+
         actions.updateMapData(activeMapId, newNodesList, nextActiveId);
     };
 
@@ -156,7 +156,7 @@ export const AnswerPanel = () => {
                         className="text-xl font-bold border border-indigo-500 rounded px-1 w-full mt-1 focus:outline-none text-stone-900 dark:text-slate-100 bg-white dark:bg-slate-900"
                     />
                 ) : (
-                    <div 
+                    <div
                         className="group flex items-center gap-2 cursor-pointer rounded -ml-1 px-1 mt-1 hover:bg-stone-200/50 dark:hover:bg-slate-800/50 transition-colors"
                         onClick={() => { setEditedQuestionText(node.question); setIsEditingQuestion(true); }}
                         title="Click to edit"
