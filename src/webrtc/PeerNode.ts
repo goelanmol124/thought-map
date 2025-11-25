@@ -31,11 +31,8 @@ export class WebRTCPeer implements PeerNode {
 
     private setupConnectionListeners() {
         this.connection.onicecandidate = (event) => {
-            if (event.candidate) {
-                // In a real mesh, we'd send this to a specific peer. 
-                // For now, we broadcast or rely on the signaling layer's target.
-                // We assume the 'connect' method sets up the target.
-            }
+            // We use Vanilla ICE (wait for all candidates), so we don't need to send individual candidates.
+            // However, we could log them for debugging.
         };
 
         this.connection.onconnectionstatechange = () => {
@@ -53,6 +50,22 @@ export class WebRTCPeer implements PeerNode {
         };
     }
 
+    private waitForIceGathering(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this.connection.iceGatheringState === 'complete') {
+                resolve();
+            } else {
+                const checkState = () => {
+                    if (this.connection.iceGatheringState === 'complete') {
+                        this.connection.removeEventListener('icegatheringstatechange', checkState);
+                        resolve();
+                    }
+                };
+                this.connection.addEventListener('icegatheringstatechange', checkState);
+            }
+        });
+    }
+
     private setupSignalingListeners() {
         this.signaling.onSignal(async (senderId, data) => {
             try {
@@ -60,12 +73,18 @@ export class WebRTCPeer implements PeerNode {
                     await this.connection.setRemoteDescription(new RTCSessionDescription(data));
                     const answer = await this.connection.createAnswer();
                     await this.connection.setLocalDescription(answer);
-                    this.signaling.sendSignal(senderId, answer);
+
+                    // Wait for ICE candidates to be gathered before sending answer
+                    await this.waitForIceGathering();
+
+                    // Send the complete answer with candidates
+                    if (this.connection.localDescription) {
+                        this.signaling.sendSignal(senderId, this.connection.localDescription);
+                    }
                 } else if (data.type === 'answer') {
                     await this.connection.setRemoteDescription(new RTCSessionDescription(data));
-                } else if (data.candidate) {
-                    await this.connection.addIceCandidate(new RTCIceCandidate(data.candidate));
                 }
+                // We no longer need to handle individual candidates since we send the full description
             } catch (err) {
                 this.emit('error', err as Error);
             }
@@ -102,15 +121,13 @@ export class WebRTCPeer implements PeerNode {
         const offer = await this.connection.createOffer();
         await this.connection.setLocalDescription(offer);
 
-        // Send Offer via Signaling
-        this.signaling.sendSignal(targetPeerId, offer);
+        // Wait for ICE candidates to be gathered
+        await this.waitForIceGathering();
 
-        // Handle ICE candidates for this specific connection attempt
-        this.connection.onicecandidate = (event) => {
-            if (event.candidate) {
-                this.signaling.sendSignal(targetPeerId, { candidate: event.candidate });
-            }
-        };
+        // Send the complete offer with candidates
+        if (this.connection.localDescription) {
+            this.signaling.sendSignal(targetPeerId, this.connection.localDescription);
+        }
     }
 
     send(data: Message): void {

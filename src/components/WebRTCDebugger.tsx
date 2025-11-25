@@ -49,15 +49,15 @@ export function WebRTCDebugger() {
         addLog(`Initialized Peer: ${myId} (${mode})`);
     };
 
-    const handleConnect = () => {
+    const handleConnect = async () => {
         if (!peerRef.current) initPeer();
         if (mode === 'local' && targetId) {
-            peerRef.current?.connect(targetId);
             addLog(`Connecting to ${targetId}...`);
+            await peerRef.current?.connect(targetId);
         } else if (mode === 'manual') {
             // In manual mode, 'connect' starts the offer generation
-            peerRef.current?.connect('manual-peer');
-            addLog('Generating Offer...');
+            addLog('Generating Offer (Waiting for ICE candidates)...');
+            await peerRef.current?.connect('manual-peer');
         }
     };
 
