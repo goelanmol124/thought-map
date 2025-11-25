@@ -55,9 +55,15 @@ export class ManualSignaling implements SignalingService {
     }
 
     sendSignal(targetId: string, data: any): void {
-        // Convert the signal object to a base64 string for easy copying
-        const signalString = btoa(JSON.stringify({ targetId, data }));
-        this.onOutgoingSignal(signalString);
+        console.log('[ManualSignaling] sendSignal called', { targetId, data });
+        try {
+            // Convert the signal object to a base64 string for easy copying
+            const signalString = btoa(JSON.stringify({ targetId, data }));
+            console.log('[ManualSignaling] Generated signal string length:', signalString.length);
+            this.onOutgoingSignal(signalString);
+        } catch (e) {
+            console.error('[ManualSignaling] Error generating signal string:', e);
+        }
     }
 
     // Call this when the user pastes a signal string from the other person

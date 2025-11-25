@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { WebRTCPeer } from '../webrtc/PeerNode';
 import { LocalSignaling, ManualSignaling } from '../webrtc/Signaling';
 import type { Message } from '../webrtc/types';
@@ -20,6 +20,18 @@ export function WebRTCDebugger() {
 
     const addLog = (msg: string) => setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
+    // Reset peer when mode changes
+    useEffect(() => {
+        if (peerRef.current) {
+            addLog(`Switching mode to ${mode}, resetting peer...`);
+            peerRef.current.disconnect();
+            peerRef.current = null;
+            manualSignalingRef.current = null;
+            setStatus('Disconnected');
+            setOutgoingSignal('');
+        }
+    }, [mode]);
+
     const initPeer = () => {
         if (peerRef.current) return;
 
@@ -28,8 +40,9 @@ export function WebRTCDebugger() {
             signaling = new LocalSignaling(myId);
         } else {
             signaling = new ManualSignaling((data) => {
+                console.log('[WebRTCDebugger] Callback received data length:', data.length);
                 setOutgoingSignal(data);
-                addLog('Generated Signal (Copy this to other peer)');
+                addLog(`Generated Signal (Length: ${data.length})`);
             });
             manualSignalingRef.current = signaling;
         }
@@ -51,6 +64,7 @@ export function WebRTCDebugger() {
 
     const handleConnect = async () => {
         if (!peerRef.current) initPeer();
+
         if (mode === 'local' && targetId) {
             addLog(`Connecting to ${targetId}...`);
             await peerRef.current?.connect(targetId);
@@ -78,7 +92,7 @@ export function WebRTCDebugger() {
 
     return (
         <div className="p-4 border rounded bg-gray-100 dark:bg-slate-800 text-sm">
-            <h3 className="font-bold mb-2">WebRTC Debugger (v1.1 - Vanilla ICE)</h3>
+            <h3 className="font-bold mb-2">WebRTC Debugger (v1.2 - Fixed Mode Switch)</h3>
 
             <div className="mb-4 flex gap-2">
                 <label>
@@ -112,7 +126,7 @@ export function WebRTCDebugger() {
 
                     {outgoingSignal && (
                         <div>
-                            <p>Copy this to other peer:</p>
+                            <p>Copy this to other peer (Length: {outgoingSignal.length}):</p>
                             <textarea readOnly className="w-full h-20 text-xs font-mono" value={outgoingSignal} onClick={e => e.currentTarget.select()} />
                         </div>
                     )}
