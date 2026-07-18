@@ -63,23 +63,43 @@ export function WebRTCDebugger() {
     };
 
     const handleConnect = async () => {
-        if (!peerRef.current) initPeer();
+        try {
+            if (!peerRef.current) initPeer();
 
-        if (mode === 'local' && targetId) {
-            addLog(`Connecting to ${targetId}...`);
-            await peerRef.current?.connect(targetId);
-        } else if (mode === 'manual') {
-            // In manual mode, 'connect' starts the offer generation
-            addLog('Generating Offer (Waiting for ICE candidates)...');
-            await peerRef.current?.connect('manual-peer');
+            if (mode === 'local' && targetId) {
+                addLog(`Connecting to ${targetId}...`);
+                await peerRef.current?.connect(targetId);
+            } else if (mode === 'manual') {
+                // In manual mode, 'connect' starts the offer generation
+                addLog('Generating Offer (Waiting for ICE candidates)...');
+                await peerRef.current?.connect('manual-peer');
+            }
+        } catch (err: any) {
+            addLog(`Connection Error: ${err.message}`);
+            console.error('[WebRTCDebugger] Connection failed:', err);
         }
     };
 
     const handlePasteSignal = () => {
-        if (!manualSignalingRef.current) return;
-        manualSignalingRef.current.receiveManualSignal(incomingSignal);
-        addLog('Processed Incoming Signal');
-        setIncomingSignal('');
+        try {
+            // Initialize peer if not already done (critical for answerer)
+            if (!peerRef.current) {
+                addLog('Initializing peer for incoming signal...');
+                initPeer();
+            }
+
+            if (!manualSignalingRef.current) {
+                addLog('Error: Manual signaling not initialized');
+                return;
+            }
+
+            manualSignalingRef.current.receiveManualSignal(incomingSignal);
+            addLog('Processed Incoming Signal');
+            setIncomingSignal('');
+        } catch (err: any) {
+            addLog(`Signal Processing Error: ${err.message}`);
+            console.error('[WebRTCDebugger] Failed to process signal:', err);
+        }
     };
 
     const handleSend = () => {
@@ -92,7 +112,7 @@ export function WebRTCDebugger() {
 
     return (
         <div className="p-4 border rounded bg-gray-100 dark:bg-slate-800 text-sm">
-            <h3 className="font-bold mb-2">WebRTC Debugger (v1.2 - Fixed Mode Switch)</h3>
+            <h3 className="font-bold mb-2">WebRTC Debugger (v1.1 - Vanilla ICE)</h3>
 
             <div className="mb-4 flex gap-2">
                 <label>

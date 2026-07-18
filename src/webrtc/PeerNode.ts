@@ -31,8 +31,14 @@ export class WebRTCPeer implements PeerNode {
     }
 
     private setupConnectionListeners() {
-        this.connection.onicecandidate = () => {
-            // We use Vanilla ICE (wait for all candidates), so we don't need to send individual candidates.
+        this.connection.onicecandidate = (event) => {
+            // We use Vanilla ICE (wait for all candidates), so we don't send individual candidates.
+            // But we log them for debugging purposes.
+            if (event.candidate) {
+                console.log(`[WebRTCPeer ${this.id}] ICE candidate discovered: ${event.candidate.type}`);
+            } else {
+                console.log(`[WebRTCPeer ${this.id}] All ICE candidates have been gathered`);
+            }
         };
 
         this.connection.onicegatheringstatechange = () => {
@@ -68,21 +74,33 @@ export class WebRTCPeer implements PeerNode {
     }
 
     private waitForIceGathering(): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.connection.iceGatheringState === 'complete') {
                 console.log(`[WebRTCPeer ${this.id}] ICE gathering already complete`);
                 resolve();
-            } else {
-                console.log(`[WebRTCPeer ${this.id}] Waiting for ICE gathering to complete...`);
-                const checkState = () => {
-                    if (this.connection.iceGatheringState === 'complete') {
-                        console.log(`[WebRTCPeer ${this.id}] ICE gathering completed`);
-                        this.connection.removeEventListener('icegatheringstatechange', checkState);
-                        resolve();
-                    }
-                };
-                this.connection.addEventListener('icegatheringstatechange', checkState);
+                return;
             }
+
+            console.log(`[WebRTCPeer ${this.id}] Waiting for ICE gathering to complete...`);
+
+            const checkState = () => {
+                if (this.connection.iceGatheringState === 'complete') {
+                    console.log(`[WebRTCPeer ${this.id}] ICE gathering completed`);
+                    clearTimeout(timeout);
+                    this.connection.removeEventListener('icegatheringstatechange', checkState);
+                    resolve();
+                }
+            };
+
+            const timeout = setTimeout(() => {
+                this.connection.removeEventListener('icegatheringstatechange', checkState);
+                const error = new Error(`ICE gathering timeout after 10 seconds (state: ${this.connection.iceGatheringState})`);
+                console.error(`[WebRTCPeer ${this.id}] ${error.message}`);
+                this.emit('error', error);
+                reject(error);
+            }, 10000); // 10 second timeout
+
+            this.connection.addEventListener('icegatheringstatechange', checkState);
         });
     }
 
@@ -156,28 +174,34 @@ export class WebRTCPeer implements PeerNode {
     }
 
     async connect(targetPeerId: string): Promise<void> {
-        console.log(`[WebRTCPeer ${this.id}] Initiating connection to ${targetPeerId}...`);
+        try {
+            console.log(`[WebRTCPeer ${this.id}] Initiating connection to ${targetPeerId}...`);
 
-        // Create Data Channel (Initiator)
-        const channel = this.connection.createDataChannel('thought-map-sync');
-        console.log(`[WebRTCPeer ${this.id}] Created data channel`);
-        this.setupDataChannel(channel);
+            // Create Data Channel (Initiator)
+            const channel = this.connection.createDataChannel('thought-map-sync');
+            console.log(`[WebRTCPeer ${this.id}] Created data channel`);
+            this.setupDataChannel(channel);
 
-        // Create Offer
-        const offer = await this.connection.createOffer();
-        console.log(`[WebRTCPeer ${this.id}] Created offer`);
+            // Create Offer
+            const offer = await this.connection.createOffer();
+            console.log(`[WebRTCPeer ${this.id}] Created offer`);
 
-        await this.connection.setLocalDescription(offer);
-        console.log(`[WebRTCPeer ${this.id}] Local description set (offer)`);
+            await this.connection.setLocalDescription(offer);
+            console.log(`[WebRTCPeer ${this.id}] Local description set (offer)`);
 
-        // Wait for ICE candidates to be gathered
-        await this.waitForIceGathering();
+            // Wait for ICE candidates to be gathered
+            await this.waitForIceGathering();
 
-        // Send the complete offer with candidates
-        if (this.connection.localDescription) {
-            const candidateCount = this.connection.localDescription.sdp?.match(/a=candidate/g)?.length || 0;
-            console.log(`[WebRTCPeer ${this.id}] Sending offer with ${candidateCount} ICE candidates`);
-            this.signaling.sendSignal(targetPeerId, this.connection.localDescription);
+            // Send the complete offer with candidates
+            if (this.connection.localDescription) {
+                const candidateCount = this.connection.localDescription.sdp?.match(/a=candidate/g)?.length || 0;
+                console.log(`[WebRTCPeer ${this.id}] Sending offer with ${candidateCount} ICE candidates`);
+                this.signaling.sendSignal(targetPeerId, this.connection.localDescription);
+            }
+        } catch (err) {
+            console.error(`[WebRTCPeer ${this.id}] Failed to connect:`, err);
+            this.emit('error', err as Error);
+            throw err;
         }
     }
 

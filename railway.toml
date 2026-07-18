@@ -1,0 +1,30 @@
+# IdeaMap — Vite SPA built with Node and served by Caddy.
+# Railway's documented SPA pattern is implemented by Dockerfile + Caddyfile:
+# - npm ci and npm run build create dist/
+# - Caddy serves real static assets and falls back to index.html
+# - Railway supplies PORT and terminates TLS
+# - no database, volumes, runtime secrets, or Node preview process are required
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+watchPatterns = [
+  "src/**",
+  "public/**",
+  "Caddyfile",
+  "Dockerfile",
+  ".dockerignore",
+  "index.html",
+  "package.json",
+  "package-lock.json",
+  "vite.config.ts",
+  "tsconfig*.json",
+  "railway.toml",
+]
+
+[deploy]
+# Dockerfile CMD starts Caddy; do not override it with startCommand.
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

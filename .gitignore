@@ -10,7 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+test-results
+playwright-report
 *.local
+
+# Demo capture / export artifacts (Playwright dry-run + keepers)
+demo/captures/
+demo/exports/
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +28,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Demo capture artifacts
+demo/captures/
+*.webm
+*.mp4
