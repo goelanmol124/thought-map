@@ -1,23 +1,21 @@
 {
   "name": "thought-map",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
-    "focus-trap-react": "^11.0.4",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-focus-trap": "^2.7.2",
     "y-indexeddb": "^9.0.12",
-    "y-webrtc": "^10.3.0",
     "yjs": "^13.6.27"
   },
   "devDependencies": {
@@ -27,15 +25,14 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
-    "autoprefixer": "^10.4.21",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
     "vite": "^7.2.2"
-  }
+  },
+  "description": "Question-driven brainstorming and idea mapping: grow a mind map by answering one question at a time. Local-first (Yjs + IndexedDB), Markdown export, experimental peer-to-peer WebRTC."
 }
