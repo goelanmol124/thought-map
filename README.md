@@ -62,7 +62,7 @@ React 19, TypeScript, Vite, Tailwind CSS v4, Yjs with y-indexeddb, WebRTC, lucid
 
 The build is a static site: deploy `dist/` to any static host (GitHub Pages, Netlify, Vercel, Cloudflare Pages, an S3 bucket). For GitHub Pages under a project path, build with `npx vite build --base=/thought-map/`.
 
-`index.html` includes a Google Analytics tag. If you deploy your own copy, remove it or replace the measurement ID with your own.
+Analytics are off by default. To enable Google Analytics for your own deployment, set `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX` in `.env.local` or in your host's build environment; without it no tracking script is loaded.
 
 ## Status
 
