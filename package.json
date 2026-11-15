@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
@@ -32,7 +33,8 @@
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
-    "vite": "^7.2.2"
+    "vite": "^7.2.2",
+    "vitest": "^3.2.4"
   },
   "description": "Question-driven brainstorming and idea mapping: grow a mind map by answering one question at a time. Local-first (Yjs + IndexedDB), Markdown export, experimental peer-to-peer WebRTC."
 }
