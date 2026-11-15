@@ -29,7 +29,8 @@ export class LocalSignaling implements SignalingService {
         const msg: SignalMessage = {
             targetId,
             senderId: this.myId,
-            data
+            // RTCSessionDescription is not structured-cloneable; send a plain object.
+            data: { type: data.type, sdp: data.sdp }
         };
         this.channel.postMessage(msg);
     }
@@ -66,17 +67,24 @@ export class ManualSignaling implements SignalingService {
         }
     }
 
-    // Call this when the user pastes a signal string from the other person
-    receiveManualSignal(signalString: string) {
+    /**
+     * Call this when the user pastes a signal string from the other person.
+     * Returns the kind of description applied; throws if the text is not a signal.
+     */
+    receiveManualSignal(signalString: string): 'offer' | 'answer' {
+        let parsed: { data?: SignalData };
         try {
-            const parsed = JSON.parse(atob(signalString));
-            if (this.onSignalCallback) {
-                // We don't strictly check targetId here since it's manual
-                this.onSignalCallback('manual-peer', parsed.data);
-            }
-        } catch (e) {
-            console.error('Invalid signal string', e);
+            parsed = JSON.parse(atob(signalString.trim()));
+        } catch {
+            throw new Error('not a valid signal string');
         }
+        const kind = parsed.data?.type;
+        if (kind !== 'offer' && kind !== 'answer') {
+            throw new Error('signal is neither an offer nor an answer');
+        }
+        // We don't check targetId here since the exchange is manual.
+        this.onSignalCallback?.('manual-peer', parsed.data!);
+        return kind;
     }
 
     onSignal(callback: (senderId: string, data: SignalData) => void): void {
