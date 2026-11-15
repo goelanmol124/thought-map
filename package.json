@@ -34,7 +34,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
     "vite": "^7.2.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.12"
   },
   "description": "Question-driven brainstorming and idea mapping: grow a mind map by answering one question at a time. Local-first (Yjs + IndexedDB), Markdown export, experimental peer-to-peer WebRTC."
 }
