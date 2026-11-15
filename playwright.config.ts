@@ -9,7 +9,15 @@ export default defineConfig({
         baseURL: 'http://localhost:5173',
         trace: 'retain-on-failure',
     },
-    projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+    projects: [{
+        name: 'chromium',
+        use: {
+            ...devices['Desktop Chrome'],
+            // Set PW_CHANNEL=chrome to use an installed Google Chrome instead of
+            // downloading Playwright's bundled Chromium (`npx playwright install chromium`).
+            ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
+        },
+    }],
     webServer: {
         command: 'npm run dev -- --port 5173 --strictPort',
         url: 'http://localhost:5173',

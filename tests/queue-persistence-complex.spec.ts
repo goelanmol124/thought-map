@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 
 test('verify queue order with multiple questions and editing', async ({ page }) => {
     // 1. Navigate to app
-    await page.goto('http://localhost:5173/');
+    await page.goto('/');
 
     // 2. Create new map
     const mapName = `Queue Order Test ${Date.now()}`;
@@ -23,14 +23,14 @@ test('verify queue order with multiple questions and editing', async ({ page }) 
     }
 
     // 5. Verify all queued
-    await expect(page.locator('text=Queued: Q1 | Q2 | Q3')).toBeVisible();
+    await expect(page.locator('ul[aria-label="Queued follow-ups"] li')).toHaveText(['Q1', 'Q2', 'Q3']);
 
     // 6. Save (Answer the root node)
     await page.fill('textarea', 'Root Answer');
     await page.click('button:has-text("Save")');
 
     // 7. Verify Inbox Order: Q1, Q2, Q3
-    const inboxItems = page.locator('div[role="listitem"]');
+    const inboxItems = page.locator('[role="navigation"] [role="listitem"]');
     await expect(inboxItems).toHaveCount(3);
     await expect(inboxItems.nth(0)).toContainText('Q1');
     await expect(inboxItems.nth(1)).toContainText('Q2');
@@ -41,7 +41,7 @@ test('verify queue order with multiple questions and editing', async ({ page }) 
 
     // 9. Edit Q2
     await page.click('h3.text-xl.font-bold'); // Click title to edit
-    await page.fill('input[value="Q2"]', 'Q2 Edited');
+    await page.fill('input[aria-label="Edit question"]', 'Q2 Edited');
     await page.keyboard.press('Enter');
 
     // 10. Verify Inbox Order is STILL Q1, Q2 Edited, Q3
