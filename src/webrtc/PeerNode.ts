@@ -1,5 +1,13 @@
 import type { PeerNode, Message, SignalingService } from './types';
 
+type PeerEvents = {
+    connect: () => void;
+    disconnect: () => void;
+    data: (msg: Message) => void;
+    error: (err: Error) => void;
+};
+type PeerEvent = keyof PeerEvents;
+
 // Use a free STUN server for NAT traversal
 const ICE_SERVERS = {
     iceServers: [
@@ -13,7 +21,7 @@ export class WebRTCPeer implements PeerNode {
     private connection: RTCPeerConnection;
     private dataChannel: RTCDataChannel | null = null;
     private signaling: SignalingService;
-    private listeners: Record<string, Function[]> = {
+    private listeners: { [E in PeerEvent]: PeerEvents[E][] } = {
         connect: [],
         disconnect: [],
         data: [],
@@ -151,7 +159,7 @@ export class WebRTCPeer implements PeerNode {
 
         this.dataChannel.onerror = (error) => {
             console.error(`[WebRTCPeer ${this.id}] Data channel error:`, error);
-            this.emit('error', error as any);
+            this.emit('error', new Error(`Data channel error: ${(error as RTCErrorEvent).error?.message ?? 'unknown'}`));
         };
     }
 
@@ -197,11 +205,11 @@ export class WebRTCPeer implements PeerNode {
         this.signaling.destroy();
     }
 
-    on(event: 'connect' | 'disconnect' | 'data' | 'error', listener: Function): void {
+    on<E extends PeerEvent>(event: E, listener: PeerEvents[E]): void {
         this.listeners[event].push(listener);
     }
 
-    private emit(event: string, ...args: any[]) {
-        this.listeners[event].forEach(fn => fn(...args));
+    private emit<E extends PeerEvent>(event: E, ...args: Parameters<PeerEvents[E]>) {
+        (this.listeners[event] as ((...a: Parameters<PeerEvents[E]>) => void)[]).forEach(fn => fn(...args));
     }
 }

@@ -1,15 +1,15 @@
-import type { SignalingService } from './types';
+import type { SignalData, SignalingService } from './types';
 
 interface SignalMessage {
     targetId: string;
     senderId: string;
-    data: any;
+    data: SignalData;
 }
 
 // --- Local Signaling (Same Browser, Different Tabs) ---
 export class LocalSignaling implements SignalingService {
     private channel: BroadcastChannel;
-    private onSignalCallback: ((senderId: string, data: any) => void) | null = null;
+    private onSignalCallback: ((senderId: string, data: SignalData) => void) | null = null;
     private myId: string;
 
     constructor(myId: string) {
@@ -25,7 +25,7 @@ export class LocalSignaling implements SignalingService {
         };
     }
 
-    sendSignal(targetId: string, data: any): void {
+    sendSignal(targetId: string, data: SignalData): void {
         const msg: SignalMessage = {
             targetId,
             senderId: this.myId,
@@ -34,7 +34,7 @@ export class LocalSignaling implements SignalingService {
         this.channel.postMessage(msg);
     }
 
-    onSignal(callback: (senderId: string, data: any) => void): void {
+    onSignal(callback: (senderId: string, data: SignalData) => void): void {
         this.onSignalCallback = callback;
     }
 
@@ -47,14 +47,14 @@ export class LocalSignaling implements SignalingService {
 // --- Manual Signaling (Different Computers, Copy-Paste) ---
 // This class doesn't "send" automatically. It exposes the signal for the user to copy.
 export class ManualSignaling implements SignalingService {
-    private onSignalCallback: ((senderId: string, data: any) => void) | null = null;
+    private onSignalCallback: ((senderId: string, data: SignalData) => void) | null = null;
     private onOutgoingSignal: (data: string) => void;
 
     constructor(onOutgoingSignal: (data: string) => void) {
         this.onOutgoingSignal = onOutgoingSignal;
     }
 
-    sendSignal(targetId: string, data: any): void {
+    sendSignal(targetId: string, data: SignalData): void {
         console.log('[ManualSignaling] sendSignal called', { targetId, data });
         try {
             // Convert the signal object to a base64 string for easy copying
@@ -79,7 +79,7 @@ export class ManualSignaling implements SignalingService {
         }
     }
 
-    onSignal(callback: (senderId: string, data: any) => void): void {
+    onSignal(callback: (senderId: string, data: SignalData) => void): void {
         this.onSignalCallback = callback;
     }
 

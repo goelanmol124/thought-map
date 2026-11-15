@@ -51,7 +51,7 @@ export function WebRTCDebugger() {
 
         peer.on('connect', () => setStatus('Connected'));
         peer.on('disconnect', () => setStatus('Disconnected'));
-        peer.on('error', (err: any) => addLog(`Error: ${err.message}`));
+        peer.on('error', (err: Error) => addLog(`Error: ${err.message}`));
         peer.on('data', (msg: Message) => {
             if (msg.type === 'CHAT') {
                 addLog(`Received: ${msg.payload}`);

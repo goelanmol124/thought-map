@@ -2,19 +2,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { yMaps, yConfig, yDoc } from '../store/yjs';
 import type { ThoughtMap, ThoughtNode } from '../types';
 
+const readMaps = () => yMaps.toJSON() as Record<string, ThoughtMap>;
+const readActiveMapId = () => {
+    const v = yConfig.get('activeMapId');
+    return typeof v === 'string' && v ? v : null;
+};
+const readIsDarkMode = () => {
+    const v = yConfig.get('isDarkMode');
+    return typeof v === 'boolean' ? v : true;
+};
+
 export function useThoughtMap() {
     // Local React state that mirrors Y.js state
-    const [maps, setMaps] = useState<Record<string, ThoughtMap>>(yMaps.toJSON() as any);
-    const [activeMapId, setActiveMapId] = useState<string | null>(yConfig.get('activeMapId') || null);
-    const [isDarkMode, setIsDarkMode] = useState<boolean>(yConfig.get('isDarkMode') ?? true);
+    const [maps, setMaps] = useState<Record<string, ThoughtMap>>(() => readMaps());
+    const [activeMapId, setActiveMapId] = useState<string | null>(() => readActiveMapId());
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(() => readIsDarkMode());
 
     // --- SUBSCRIPTIONS (The Nervous System) ---
     useEffect(() => {
         // When Y.js data changes, update our local React state to trigger a re-render
-        const onMapChange = () => setMaps(yMaps.toJSON() as any);
+        const onMapChange = () => setMaps(readMaps());
         const onConfigChange = () => {
-            setActiveMapId(yConfig.get('activeMapId') || null);
-            setIsDarkMode(yConfig.get('isDarkMode') ?? true);
+            setActiveMapId(readActiveMapId());
+            setIsDarkMode(readIsDarkMode());
         };
 
         yMaps.observeDeep(onMapChange);

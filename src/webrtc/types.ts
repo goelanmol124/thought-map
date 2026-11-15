@@ -5,12 +5,15 @@ export interface Message {
     payload: string; // Base64 encoded for binary data, or plain string for CHAT
 }
 
+/** Session description exchanged during signaling (offer or answer, ICE candidates inlined). */
+export type SignalData = RTCSessionDescriptionInit;
+
 export interface SignalingService {
     // Send a signal to a specific peer
-    sendSignal(targetId: string, data: any): void;
+    sendSignal(targetId: string, data: SignalData): void;
 
     // Receive signals intended for this peer
-    onSignal(callback: (senderId: string, data: any) => void): void;
+    onSignal(callback: (senderId: string, data: SignalData) => void): void;
 
     // Clean up
     destroy(): void;
