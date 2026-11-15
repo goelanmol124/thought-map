@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { yMaps, yConfig, yDoc } from '../store/yjs';
 import type { ThoughtMap, ThoughtNode } from '../types';
+import type { MapUpdate } from '../state/mapOps';
+
+export const THEME_STORAGE_KEY = 'theme';
 
 const readMaps = () => yMaps.toJSON() as Record<string, ThoughtMap>;
 const readActiveMapId = () => {
@@ -12,39 +15,33 @@ const readIsDarkMode = () => {
     return typeof v === 'boolean' ? v : true;
 };
 
+/**
+ * React view of the Yjs document. Yjs is the source of truth (persisted to
+ * IndexedDB); actions write to Yjs and the observers below re-render.
+ */
 export function useThoughtMap() {
-    // Local React state that mirrors Y.js state
-    const [maps, setMaps] = useState<Record<string, ThoughtMap>>(() => readMaps());
-    const [activeMapId, setActiveMapId] = useState<string | null>(() => readActiveMapId());
-    const [isDarkMode, setIsDarkMode] = useState<boolean>(() => readIsDarkMode());
+    const [maps, setMaps] = useState<Record<string, ThoughtMap>>(readMaps);
+    const [activeMapId, setActiveMapId] = useState<string | null>(readActiveMapId);
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(readIsDarkMode);
 
-    // --- SUBSCRIPTIONS (The Nervous System) ---
     useEffect(() => {
-        // When Y.js data changes, update our local React state to trigger a re-render
         const onMapChange = () => setMaps(readMaps());
         const onConfigChange = () => {
             setActiveMapId(readActiveMapId());
             setIsDarkMode(readIsDarkMode());
         };
-
         yMaps.observeDeep(onMapChange);
         yConfig.observeDeep(onConfigChange);
-
         return () => {
             yMaps.unobserveDeep(onMapChange);
             yConfig.unobserveDeep(onConfigChange);
         };
     }, []);
 
-    // --- ACTIONS (The Muscles) ---
-    // These replace your old dispatch({ type: ... }) calls.
-    // They write directly to Y.js, which then triggers the useEffect above.
-
     const createMap = useCallback((topic: string) => {
         const newId = `map_${Date.now()}`;
         const rootNode: ThoughtNode = { id: 0, question: topic, answer: '', parentId: null, isAnswered: false };
         const newMap: ThoughtMap = { id: newId, topic, nodes: [rootNode], currentQuestionId: 0 };
-        
         yDoc.transact(() => {
             yMaps.set(newId, newMap);
             yConfig.set('activeMapId', newId);
@@ -54,9 +51,7 @@ export function useThoughtMap() {
     const deleteMap = useCallback((mapId: string) => {
         yDoc.transact(() => {
             yMaps.delete(mapId);
-            if (yConfig.get('activeMapId') === mapId) {
-                yConfig.set('activeMapId', null);
-            }
+            if (yConfig.get('activeMapId') === mapId) yConfig.set('activeMapId', null);
         });
     }, []);
 
@@ -64,37 +59,30 @@ export function useThoughtMap() {
         yConfig.set('activeMapId', mapId);
     }, []);
 
-
-    const toggleTheme = () => {
-        const newIsDarkMode = !isDarkMode;
-            try {
-                yConfig.set('isDarkMode', newIsDarkMode);  // Update Y.js config
-                localStorage.setItem('theme', newIsDarkMode ? 'dark' : 'light');  // Update localStorage only if Y.js succeeds
-            } catch (error) {
-                console.error('Failed to update theme in Y.js:', error);
-                // Do not update localStorage on failure to prevent mismatch
-            }
-        };
-
-    const updateMapData = useCallback((mapId: string, nodes: ThoughtNode[], currentQuestionId: number | null) => {
-        const map = yMaps.get(mapId);
-        if (map) {
-            // We spread existing map properties to avoid accidental data loss if we add new fields later
-            yMaps.set(mapId, { ...map, nodes, currentQuestionId });
+    const toggleTheme = useCallback(() => {
+        const next = !readIsDarkMode();
+        yConfig.set('isDarkMode', next);
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, next ? 'dark' : 'light');
+        } catch {
+            // Storage can be unavailable (private mode); the Yjs value still applies.
         }
     }, []);
 
-    return {
-        maps,
-        activeMapId,
-        isDarkMode,
-        currentMap: activeMapId ? maps[activeMapId] : null,
-        actions: {
-            createMap,
-            deleteMap,
-            openMap,
-            toggleTheme,
-            updateMapData
-        }
-    };
+    const applyUpdate = useCallback((mapId: string, update: MapUpdate) => {
+        const map = yMaps.get(mapId);
+        if (map) yMaps.set(mapId, { ...map, nodes: update.nodes, currentQuestionId: update.currentQuestionId });
+    }, []);
+
+    const selectQuestion = useCallback((mapId: string, questionId: number | null) => {
+        const map = yMaps.get(mapId);
+        if (map && map.currentQuestionId !== questionId) yMaps.set(mapId, { ...map, currentQuestionId: questionId });
+    }, []);
+
+    const actions = useMemo(
+        () => ({ createMap, deleteMap, openMap, toggleTheme, applyUpdate, selectQuestion }),
+        [createMap, deleteMap, openMap, toggleTheme, applyUpdate, selectQuestion],
+    );
+
+    return { maps, activeMapId, isDarkMode, actions };
 }
