@@ -1,5 +1,7 @@
 # WebRTC Architecture & Protocol Standards
 
+> **Status.** Layer 1 (transport: `src/webrtc/PeerNode.ts`, `src/webrtc/Signaling.ts`) is implemented and exercised by the peer-to-peer panel and `tests/webrtc.spec.ts`. Layer 2 (the `WebRTCProvider` / sync protocol that carries Yjs updates) is the design below and is not implemented yet. The UI-facing connection lifecycle lives in `src/webrtc/connectionMachine.ts`.
+
 This document defines the architectural standards, component interfaces, and wire protocols for the Thought Map WebRTC integration. All contributors must adhere to these specifications to ensure modularity and independent testing.
 
 ## 1. System Architecture
